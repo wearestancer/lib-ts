@@ -1,0 +1,1 @@
+# Stancer TypeScript library
