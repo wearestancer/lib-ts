@@ -1,4 +1,56 @@
 {
-  "name": "@stancer/sdk",
-  "license":"MIT"
+  "name": "@stancer/stancer",
+  "version": "1.0.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.15.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist/ node_modules/",
+    "format": "prettier --write ./src ./test",
+    "fresh": "pnpm run clean && pnpm install && pnpm run build",
+    "test": " DEBUG=true vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "temporal-polyfill": "^1.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:eslint",
+    "@stancer/prettier": "catalog:prettier",
+    "@types/node": "^22.0.0",
+    "@typescript/native": "npm:typescript@^7.0.0",
+    "@vitest/coverage-v8": "catalog:vitest",
+    "eslint": "catalog:eslint",
+    "eslint-formatter-junit": "catalog:eslint",
+    "globals": "catalog:eslint",
+    "libphonenumber-js": "^1.13.10",
+    "prettier": "catalog:prettier",
+    "typescript": "npm:@typescript/typescript6@^6.0.0",
+    "typescript-eslint": "catalog:eslint",
+    "vitest": "catalog:vitest"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.0.0",
+      "onFail": "download"
+    }
+  },
+  "imports": {
+    "#api/*": "./src/api-endpoint/*",
+    "#address/*": "./src/address/*",
+    "#core/*": "./src/core/*",
+    "#error/*": "./src/core/error/*",
+    "#test/*": "./test/*",
+    "#card/*": "./src/card/*",
+    "#sepa/*": "./src/sepa/*",
+    "#customer/*": "./src/customer/*",
+    "#payment/*": "./src/payment/*",
+    "#refund/*": "./src/refund/*",
+    "#payment-intent/*": "./src/payment-intent/*"
+  }
 }

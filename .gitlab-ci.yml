@@ -1,0 +1,159 @@
+spec:
+  inputs:
+    nodeVersion:
+      default: 22
+      description: Node version.
+
+---
+
+.cache: &cache
+  key:
+    files:
+    - pnpm-lock.yaml
+  paths:
+    - node_modules/.bin
+    - node_modules/.cache/pnpm
+    - node_modules/.pnpm
+    - node_modules/@**
+    - node_modules/[a-z]**
+    - node_modules/.modules.yaml
+  unprotect: true
+  when: always
+
+
+.base:
+  image: wearestancer/node:$[[ inputs.nodeVersion ]]
+
+  before_script:
+    - section_start --collapsed node_install "Package install"
+    - echo "node $(node --version)"
+    - echo "pnpm $(pnpm --version)"
+    - pnpm config set store-dir node_modules/.cache/pnpm
+    - pnpm install --frozen-lockfile --prefer-offline
+    - section_end node_install
+
+  cache:
+    - <<: *cache
+
+
+stages:
+  - test
+  - build
+  - deploy
+
+
+workflow:
+  auto_cancel:
+    on_job_failure: none
+    on_new_commit: interruptible
+  rules:
+  - if: $CI_COMMIT_REF_PROTECTED == "true"
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_PIPELINE_SOURCE == "web"
+  - if: "$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS"
+    when: never
+  - when: always
+
+
+variables:
+  FF_SCRIPT_SECTIONS: true
+
+
+ESLint:
+  extends:
+    - .base
+
+  stage: test
+
+  script:
+    - pnpm exec eslint --cache --cache-location 'node_modules/.cache/eslint' "**/*.{js,ts,vue}" || true
+    - pnpm exec eslint --cache --cache-location 'node_modules/.cache/eslint' --max-warnings 0 --format junit "**/*.{js,ts,vue}" > junit.xml
+
+  cache:
+    - <<: *cache
+    - key: "${CI_COMMIT_REF_SLUG}-eslint"
+      fallback_keys:
+        - "${CI_DEFAULT_BRANCH}-eslint"
+      paths:
+        - node_modules/.cache/eslint
+      unprotect: true
+      when: always
+
+  artifacts:
+    reports:
+      junit:
+        - junit.xml
+
+
+Build Node package:
+  extends:
+    - .base
+
+  stage: build
+
+  script:
+    - section_start publish "Publish"
+    - pnpm publish --dry-run --no-git-check --report-summary
+    - section_end publish
+
+  rules:
+    - if: "$CI_COMMIT_TAG"
+      when: never
+    - when: on_success
+
+
+Prettier check:
+  extends:
+    - .base
+
+  stage: test
+
+  script:
+    - section_start --collapsed prettier "Prettier rewrite files"
+    - pnpm exec prettier --cache-location node_modules/.cache/prettier --write . || true
+    - section_end prettier
+
+    - if [[ -f .npmrc ]]; then git restore .npmrc; fi
+    - git diff
+    - if [ -n "$(git status --untracked-files=no --porcelain)" ]; then exit 1; fi
+
+  cache:
+    - <<: *cache
+    - key: "${CI_COMMIT_REF_SLUG}-prettier"
+      fallback_keys:
+        - "${CI_DEFAULT_BRANCH}-prettier"
+      paths:
+        - node_modules/.cache/prettier
+      unprotect: true
+      when: always
+
+
+Type check:
+  extends:
+    - .base
+
+  stage: test
+
+  script:
+    - pnpm exec tsc
+    - pnpm exec tsc --noEmit
+
+
+Vitest:
+  extends:
+    - .base
+
+  stage: test
+
+  script:
+    - pnpm exec vitest --reporter=verbose --reporter=junit --outputFile.junit=reports/junit.xml
+
+  coverage: "/All\\sfiles.*?\\s+(\\d+.\\d+)/"
+
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/cobertura-coverage.xml
+      junit:
+        - reports/junit.xml

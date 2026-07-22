@@ -1,0 +1,19 @@
+catalogs:
+  eslint:
+    "@eslint/js": ^10.0.0
+    eslint: ^10.0.0
+    eslint-formatter-junit: ^9.0.0
+    globals: ^17.0.0
+    typescript-eslint: ^8.0.0
+
+  prettier:
+    "@stancer/prettier": ^3.0.0
+    prettier: ^3.0.0
+
+  vitest:
+    "@vitest/coverage-v8": ^4.0.0
+    vitest: ^4.0.0
+
+lockfileIncludeTarballUrl: true
+
+minimumReleaseAge: 10080 # 7days

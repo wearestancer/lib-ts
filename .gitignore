@@ -1,0 +1,7 @@
+dist/
+node_modules/
+reports/
+.npmrc
+
+.DS_Store
+._*
